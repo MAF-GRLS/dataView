@@ -1,10 +1,11 @@
 import pandas as pd
+import sys
 
 # Path to the merged data file
-merged_file_path = 'phenotypes_clean/merged_data.csv'
+merged_file_path = sys.argv[1] 
 
 # Path to the column sums file
-column_sums_file_path = 'phenotypes_clean/column_sums.txt'
+column_sums_file_path = sys.argv[2]
 
 # Read the column names from the column sums file
 with open(column_sums_file_path, 'r') as file:
@@ -21,7 +22,7 @@ if 'subject_id' not in columns:
 subset_data = data[columns]
 
 # Save the subset dataframe to a new CSV file
-subset_file_path = 'phenotypes_clean/subset_merged_data.csv'
+subset_file_path = sys.argv[3]
 subset_data.to_csv(subset_file_path, index=False)
 
 print(f"The subset data has been saved to: {subset_file_path}")

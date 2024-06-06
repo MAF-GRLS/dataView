@@ -33,8 +33,8 @@ prefix = os.path.basename(file_path).split('_')[1].split('.')[0]
 
 # Add the prefix to all column names except 'subject_id'
 data = data.rename(
-    columns={col: f"{prefix}_{col}" for col in data.columns if col != 'subject_id'}
-)
+            columns={col: f"{prefix}_{col}" for col in data.columns if col != 'subject_id'}
+            )
 
 # Print the sum of all columns except 'subject_id'
 print(f"Sum of all columns except 'subject_id' for {file_path}:")
