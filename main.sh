@@ -58,7 +58,7 @@ cat phenotypes_clean/subset_row_sums.txt | awk '{if($2>0)print}' | wc -l ## 2811
 ## Identify samples with tumors
 tail -n+2 phenotypes/study_endpoints.csv | cut -d"," -f5,8 | sort | uniq -c | less
 
-grep -i 'ameloblastoma\|carcinoma\|sarcoma\|adenoma\|tumor\|melanoma\|Fibroma\|Lymphoma\|Malignant\|epithelioma\|Meningioma\|myeloma\|Nephroblastoma\|Thymoma\|neoplasia' phenotypes/study_endpoints.csv | cut -d"," -f1 | sort | uniq > phenotypes_clean/study_endpoints_tumor.ids ## 798
+grep -i 'ameloblastoma\|carcinoma\|sarcoma\|adenoma\|tumor\|melanoma\|Fibroma\|Lymphoma\|Malignant\|epithelioma\|Meningioma\|myeloma\|Nephroblastoma\|Thymoma\|neoplasia\|neoplasm\|malignancy\|Leukemia' phenotypes/study_endpoints.csv | cut -d"," -f1 | sort | uniq > phenotypes_clean/study_endpoints_tumor.ids ## 811
 
 python3 dataView/sum_conditions_samples.py "phenotypes_clean/conditions_neoplasia.csv" "phenotypes_clean/neoplasia_column_sums.txt" "phenotypes_clean/neoplasia_row_sums.txt"
 cat phenotypes_clean/neoplasia_row_sums.txt | sed 's/://' | awk '{if($2>0)print $1}' | sort > phenotypes_clean/reported_tumor.ids ## 402
@@ -67,13 +67,32 @@ comm -12 phenotypes_clean/reported_tumor.ids phenotypes_clean/study_endpoints_tu
 ## identify old samples
 awk 'BEGIN{FS=","}{if ($2==10 && $4==0 && $5!="")print $1}'  phenotypes/conditions_summary.csv  > phenotypes_clean/sampleWith10YearsInfo.ids
 
-cat phenotypes_clean/{study_endpoints_tumor.ids,reported_tumor.ids} | sort | uniq | grep -vFwf - phenotypes_clean/sampleWith10YearsInfo.ids > phenotypes_clean/sampleWith10YearsInfo_noTumors.ids
+cat phenotypes_clean/{study_endpoints_tumor.ids,reported_tumor.ids} | sort | uniq | grep -vFwf - phenotypes_clean/sampleWith10YearsInfo.ids > phenotypes_clean/sampleWith10YearsInfo_noTumors.ids ## 88
 awk 'BEGIN{FS=OFS=","}NR==FNR{a[$3]=$4;next}{if(a[$1]){$1=a[$1];print}}' <(cat map_id_sex.tab | tr '\t' ',') phenotypes_clean/sampleWith10YearsInfo_noTumors.ids > phenotypes_clean/sampleWith10YearsInfo_noTumors.pubIDs
 
 relateds=$HOME/MAF_newTut_king
 awk 'BEGIN{FS=OFS="\t"}NR==FNR{a[$1]=1;next}{if($1 in a && $2 in a)print}' phenotypes_clean/sampleWith10YearsInfo_noTumors.pubIDs $relateds/Related_cluster_closeRel_short.tab >  phenotypes_clean/sampleWith10YearsInfo_noTumors_pubIDs_closeRel.tab
 python $relateds/connected_components.py phenotypes_clean/sampleWith10YearsInfo_noTumors_pubIDs_closeRel.tab > phenotypes_clean/sampleWith10YearsInfo_noTumors_pubIDs_closeRel_conn.txt
+###########
+## Working with the updated version of phenotypes
+rclone sync remote_UCDavis_GoogleDr:/MAF/source_files/updated_phenotypes/ updated_phenotypes/
+tail -n+2 updated_phenotypes/cancer_details_updated_20240516.csv  | cut -d"," -f8,13 | sort | uniq -c | less
 
+grep -i 'ameloblastoma\|carcinoma\|sarcoma\|adenoma\|tumor\|melanoma\|Fibroma\|Lymphoma\|Malignant\|epithelioma\|Meningioma\|myeloma\|Nephroblastoma\|Thymoma\|neoplasia\|neoplasm\|malignancy\|Leukemia' updated_phenotypes/cancer_details_updated_20240516.csv | cut -d"," -f1 | sort | uniq | sed 's/\"//g' > phenotypes_clean/study_endpoints_tumor.ids.updated ## 1074
+
+python3 dataView/sum_conditions_samples.py "phenotypes_clean/conditions_neoplasia.csv" "phenotypes_clean/neoplasia_column_sums.txt" "phenotypes_clean/neoplasia_row_sums.txt"
+cat phenotypes_clean/neoplasia_row_sums.txt | sed 's/://' | awk '{if($2>0)print $1}' | sort > phenotypes_clean/reported_tumor.ids ## 402
+comm -12 phenotypes_clean/reported_tumor.ids phenotypes_clean/study_endpoints_tumor.ids | wc -l ## 310
+
+## identify old samples
+awk 'BEGIN{FS=","}{if ($2==10 && $4==0 && $5!="")print $1}'  phenotypes/conditions_summary.csv  > phenotypes_clean/sampleWith10YearsInfo.ids
+
+cat phenotypes_clean/{study_endpoints_tumor.ids.updated,reported_tumor.ids} | sort | uniq | grep -vFwf - phenotypes_clean/sampleWith10YearsInfo.ids > phenotypes_clean/sampleWith10YearsInfo_noTumors.ids.updated ## 71
+awk 'BEGIN{FS=OFS=","}NR==FNR{a[$3]=$4;next}{if(a[$1]){$1=a[$1];print}}' <(cat map_id_sex.tab | tr '\t' ',') phenotypes_clean/sampleWith10YearsInfo_noTumors.ids.updated > phenotypes_clean/sampleWith10YearsInfo_noTumors.pubIDs.updated
+
+relateds=$HOME/MAF_newTut_king
+awk 'BEGIN{FS=OFS="\t"}NR==FNR{a[$1]=1;next}{if($1 in a && $2 in a)print}' phenotypes_clean/sampleWith10YearsInfo_noTumors.pubIDs.updated $relateds/Related_cluster_closeRel_short.tab >  phenotypes_clean/sampleWith10YearsInfo_noTumors_pubIDs_closeRel.tab.updated
+python $relateds/connected_components.py phenotypes_clean/sampleWith10YearsInfo_noTumors_pubIDs_closeRel.tab.updated > phenotypes_clean/sampleWith10YearsInfo_noTumors_pubIDs_closeRel_conn.txt.updated
 ##########
 ## QC the hemangiosarcoma samples
 
@@ -90,7 +109,9 @@ paste <(head -n1 phenotypes_clean/conditions_neoplasia.csv | tr ',' '\n') <(grep
 paste <(head -n1 phenotypes_clean/conditions_neoplasia.csv | tr ',' '\n') <(grep "094-002792" phenotypes_clean/conditions_neoplasia.csv | tr ',' '\n')
 #094-002792 soft_tissue_sarcoma
 
-tail -n+2 ~/MAF_newTut/gwas_hemangiosarcoma/controlsForSeq.csv | cut -d"," -f3 | grep -Fwf - phenotypes_clean/study_endpoints_tumor.ids
+#tail -n+2 ~/MAF_newTut/gwas_hemangiosarcoma/controlsForSeq.csv | cut -d"," -f3 | grep -Fwf - phenotypes_clean/study_endpoints_tumor.ids
+tail -n+2 ~/MAF_newTut/gwas_hemangiosarcoma/controlsForSeq.csv | cut -d"," -f3 | grep -Fwf - phenotypes_clean/study_endpoints_tumor.ids.updated
+
 
 ## 2B) Are control samples old enough?
 tail -n+2 ~/MAF_newTut/gwas_hemangiosarcoma/controlsForSeq.csv | cut -d"," -f3 | grep -Fwf - phenotypes/conditions_summary.csv | less
@@ -104,33 +125,36 @@ tail -n+2 ~/MAF_newTut/gwas_hemangiosarcoma/controlsForSeq.csv | cut -d"," -f3 |
 
 ## 3. QC cases
 ## A) are they really cases?
-cat phenotypes_clean/study_endpoints_tumor.ids | grep -vFwf - ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv
-#9,grlsPA3037CC,094-025292
-#12,grls3S4N0Q33,094-016409
-#13,grls6J8CR300,094-032589
-#14,grlsVCOWTN99,094-031751
-#16,grlsPMRYSYY,094-003439
-#24,grls1XT2PQ77,094-006087
-#36,grlsFK1K1D00,094-030989
-#38,grlsX1Q3RTUU,094-020678
+#cat phenotypes_clean/study_endpoints_tumor.ids | grep -vFwf - ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv
+cat phenotypes_clean/study_endpoints_tumor.ids.updated | grep -vFwf - ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv
+
 
 ## B) do they have other tumors in condition_neoplasia?
-cat phenotypes_clean/study_endpoints_tumor.ids | grep -vFwf - ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv | cut -d"," -f3 | grep -Fwf - phenotypes_clean/reported_tumor.ids
-#094-025292
-#094-032589
-paste <(head -n1 phenotypes_clean/conditions_neoplasia.csv | tr ',' '\n') <(grep "094-025292" phenotypes_clean/conditions_neoplasia.csv | tr ',' '\n')
-#094-025292
-#neoplasia_histiocytic_sarcoma   1.0
-#neoplasia_liver_tumor   1.0
-paste <(head -n1 phenotypes_clean/conditions_neoplasia.csv | tr ',' '\n') <(grep "094-032589" phenotypes_clean/conditions_neoplasia.csv | tr ',' '\n')
-#094-032589
-#neoplasia_eye_tumor
+#cat phenotypes_clean/study_endpoints_tumor.ids | grep -vFwf - ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv | cut -d"," -f3 | grep -Fwf - phenotypes_clean/reported_tumor.ids
+cat ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv | cut -d"," -f3 | grep -Fwf - phenotypes_clean/conditions_neoplasia.csv | while read line;do 
+paste <(head -n1 phenotypes_clean/conditions_neoplasia.csv | tr ',' '\n') <(echo "$line" | tr ',' '\n') | grep -v hemangiosarcoma | awk '{if($2!="0.0")print}'
+done
+subject_id      094-000320
+neoplasia_eye_tumor     1.0
+subject_id      094-006705
+neoplasia_mast_cell_tumor       1.0
+subject_id      094-016217
+neoplasia_melanoma      1.0
+subject_id      094-025292
+neoplasia_histiocytic_sarcoma   1.0
+neoplasia_liver_tumor   1.0
+subject_id      094-025540
+neoplasia_eye_tumor     1.0
+subject_id      094-032589
+neoplasia_eye_tumor     1.0
 
 ## C) look into study_endpoints for other tumors
-cat ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv | cut -d"," -f3 | grep -Fwf -  phenotypes/study_endpoints.csv | sort
+#cat ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv | cut -d"," -f3 | grep -Fwf -  phenotypes/study_endpoints.csv | sort
+cat ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv | cut -d"," -f3 | grep -Fwf -  updated_phenotypes/cancer_details_updated_20240516.csv  | sort
 
 ## D) look into study_endpoints for subtypes
-cat ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv | cut -d"," -f3 | grep -Fwf -  phenotypes/study_endpoints.csv | grep Hemangiosarcoma | cut -d"," -f1,5 | sort | uniq | cut -d"," -f2 | sort | uniq -c
+#cat ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv | cut -d"," -f3 | grep -Fwf -  phenotypes/study_endpoints.csv | grep Hemangiosarcoma | cut -d"," -f1,5 | sort | uniq | cut -d"," -f2 | sort | uniq -c
+cat ~/MAF_newTut/gwas_hemangiosarcoma/casesForSeq.csv | cut -d"," -f3 | grep -Fwf -  updated_phenotypes/cancer_details_updated_20240516.csv | grep Hemangiosarcoma | cut -d"," -f1,8 | sort | uniq | cut -d"," -f2 | sort | uniq -c
 
 ## 4. relatedness?
 relateds=$HOME/MAF_newTut_king
