@@ -93,6 +93,30 @@ awk 'BEGIN{FS=OFS=","}NR==FNR{a[$3]=$4;next}{if(a[$1]){$1=a[$1];print}}' <(cat m
 relateds=$HOME/MAF_newTut_king
 awk 'BEGIN{FS=OFS="\t"}NR==FNR{a[$1]=1;next}{if($1 in a && $2 in a)print}' phenotypes_clean/sampleWith10YearsInfo_noTumors.pubIDs.updated $relateds/Related_cluster_closeRel_short.tab >  phenotypes_clean/sampleWith10YearsInfo_noTumors_pubIDs_closeRel.tab.updated
 python $relateds/connected_components.py phenotypes_clean/sampleWith10YearsInfo_noTumors_pubIDs_closeRel.tab.updated > phenotypes_clean/sampleWith10YearsInfo_noTumors_pubIDs_closeRel_conn.txt.updated
+
+
+## what are the phenotypes in the long living samples
+head -n1 phenotypes_clean/merged_data_pubIDs.csv > phenotypes_clean/merged_data_pubIDs_sampleWith10YearsInfo.csv
+grep -Fwf phenotypes_clean/sampleWith10YearsInfo_noTumors.pubIDs.updated phenotypes_clean/merged_data_pubIDs.csv >> phenotypes_clean/merged_data_pubIDs_sampleWith10YearsInfo.csv
+python3 dataView/sum_conditions_samples.py "phenotypes_clean/merged_data_pubIDs_sampleWith10YearsInfo.csv" "phenotypes_clean/10Years_column_sums.txt" "phenotypes_clean/10Years_row_sums.txt"
+cat phenotypes_clean/10Years_column_sums.txt | awk '{if($2!="0.0")print}' | sort -k2,2nr | less
+
+
+## Subset the merged dataset to include the selected conditions only
+grep -i eye_pigmentary_uveitis phenotypes_clean/10Years_column_sums.txt > phenotypes_clean/column_10yPigUV.txt
+python3 dataView/subset_merged_data.py "phenotypes_clean/merged_data_pubIDs_sampleWith10YearsInfo.csv"  "phenotypes_clean/column_10yPigUV.txt" "phenotypes_clean/10yPigUV_merged_data_pubIDs.csv"
+cat phenotypes_clean/10yPigUV_merged_data_pubIDs.csv | awk -F',' '{if($2=="1.0")print $1}' ## grlsNVN2JEFF
+
+grep -i eye_distichiasis phenotypes_clean/10Years_column_sums.txt > phenotypes_clean/column_10yDist.txt
+python3 dataView/subset_merged_data.py "phenotypes_clean/merged_data_pubIDs_sampleWith10YearsInfo.csv"  "phenotypes_clean/column_10yDist.txt" "phenotypes_clean/10yDist_merged_data_pubIDs.csv"
+cat phenotypes_clean/10yDist_merged_data_pubIDs.csv | awk -F',' '{if($2=="1.0")print $1}' ## grlsJS60YMLL
+
+grep -i eye_cataracts phenotypes_clean/10Years_column_sums.txt > phenotypes_clean/column_10yCataract.txt
+python3 dataView/subset_merged_data.py "phenotypes_clean/merged_data_pubIDs_sampleWith10YearsInfo.csv"  "phenotypes_clean/column_10yCataract.txt" "phenotypes_clean/10yCataract_merged_data_pubIDs.csv"
+cat phenotypes_clean/10yCataract_merged_data_pubIDs.csv | awk -F',' '{if($2=="1.0")print $1}' | tr '\n' ','  ## grlsZ03WC1OO,grlsG2JULRR,grls8NWAH177,grlsBFIWWMNN,grlsVIJRLEII,grlsRBB2VHLL,
+
+
+
 ##########
 ## QC the hemangiosarcoma samples
 
@@ -164,3 +188,8 @@ awk 'BEGIN{FS=OFS="\t"}NR==FNR{a[$2]=1;next}{if($1 in a && $2 in a)print}' <(cat
 awk 'BEGIN{FS=OFS="\t"}NR==FNR{a[$2]=1;next}{if($1 in a && $2 in a)print}' <(cat  $gwas/casesForSeq.csv | tr ',' '\t') $relateds/Related_cluster_closeRel_short.tab >  $gwas/casesForSeq_closeRel.tab
 python $relateds/connected_components.py $gwas/casesForSeq_closeRel.tab > $gwas/casesForSeq_closeRel_conn.txt
 awk 'BEGIN{FS=OFS="\t"}NR==FNR{a[$2]=$3;next}{print a[$1],a[$2],$3}' <(cat $gwas/casesForSeq.csv | tr ',' '\t') $gwas/casesForSeq_closeRel.tab > $gwas/casesForSeq_closeRel_genoIDs.tab
+
+
+
+#############################################################
+
